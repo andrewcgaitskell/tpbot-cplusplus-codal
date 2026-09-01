@@ -23,7 +23,7 @@ static const uint8_t THIS_ROBOT_ID = 1;
 // on corners), Kp=20 overcorrected (zigzag). Try this value, then adjust
 // in steps of ~2-3 toward whichever symptom reappears.
 static const int   BASE_SPEED = 15;
-static const float KP         = 12.0f;
+static const float KP         = 15.0f;
 static const int   MIN_SPEED  = -25;  // allows the inner wheel to reverse for a tighter pivot on sharp error
 static const int   MAX_SPEED  = 100;
 
