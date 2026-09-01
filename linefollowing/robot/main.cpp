@@ -19,7 +19,9 @@ static const uint8_t THIS_ROBOT_ID = 1;
 static const int   BASE_SPEED     = 15;   // both wheels when centred (matches the bang-bang baseline that worked)
 static const float KP             = 20.0f; // needs to reach ~BASE_SPEED at max error to turn as sharply as bang-bang did
 static const float KI             = 0.0f;  // start at 0 - only add if there's a consistent one-sided drift
-static const float KD             = 0.1f;  // was 2.0: with a discrete 0/1/-1 error and DT=0.02s, a full-step
+// static const float KD             = 0.1f;  // was jerky
+static const float KD             = 0.0f;
+                                            // was 2.0: with a discrete 0/1/-1 error and DT=0.02s, a full-step
                                             // transition gives derivative=1/DT=50, so Kd=2 alone contributed a
                                             // 100-point swing - far bigger than Kp's own ±20. This was the main
                                             // source of the jerkiness. Re-tune up from here in small steps if needed.
