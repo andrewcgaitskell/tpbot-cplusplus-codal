@@ -11,27 +11,21 @@ TPBot robot(uBit);
 
 static const uint8_t THIS_ROBOT_ID = 1;
 
-// --- PID line following ---
-// Sensors are digital (0/1 per side), so the error signal is discrete:
-// {-1, 0, +1} from (left - right). Same information content as
-// bang-bang, but Kp/Ki/Kd shape a smoother, tunable reaction instead of
-// an instant full-speed snap. All gains are untuned starting points.
-static const int   BASE_SPEED     = 15;   // both wheels when centred (matches the bang-bang baseline that worked)
-static const float KP             = 12.0f; // was 20: that overshot past centre and oscillated (zigzag) between the two edges.
-                                            // Was 8 before that: undercorrected and didn't turn enough. Narrowing in from both ends -
-                                            // nudge up/down in steps of ~2 from here depending on which symptom reappears.
-static const float KI             = 0.0f;  // start at 0 - only add if there's a consistent one-sided drift
-static const float KD             = 0.1f;  // was 2.0: with a discrete 0/1/-1 error and DT=0.02s, a full-step
-                                            // transition gives derivative=1/DT=50, so Kd=2 alone contributed a
-                                            // 100-point swing - far bigger than Kp's own ±20. This was the main
-                                            // source of the jerkiness. Re-tune up from here in small steps if needed.
-static const float INTEGRAL_LIMIT = 10.0f; // anti-windup clamp
-static const int   LOOP_MS        = 20;
-static const float DT             = LOOP_MS / 1000.0f;
-static const int   MIN_SPEED      = -25;  // was -40: reduced alongside Kp so the sharpest correction is a bit less extreme
-static const int   MAX_SPEED      = 100;
-static const int   MAX_STEP       = 3;    // was 4: slightly gentler ramp, complements the lower Kp in damping overshoot
-static const int   DEBOUNCE_READS = 2;     // consecutive matching raw readings needed before a sensor state change is trusted
+// --- P-only line following ---
+// Stripped back to a single variable (Kp) to tune in isolation. No Ki,
+// no Kd, no debounce, no slew-rate limiting - those all add interacting
+// parameters, which made it hard to tell what was actually causing
+// undercorrection vs. zigzag. Get one working Kp first, then reintroduce
+// extras one at a time only if a specific symptom calls for it.
+//
+// Error is discrete: {-1, 0, +1} from (left - right), since both
+// sensors are digital. History so far: Kp=8 undercorrected (drifted off
+// on corners), Kp=20 overcorrected (zigzag). Try this value, then adjust
+// in steps of ~2-3 toward whichever symptom reappears.
+static const int   BASE_SPEED = 15;
+static const float KP         = 12.0f;
+static const int   MIN_SPEED  = -25;  // allows the inner wheel to reverse for a tighter pivot on sharp error
+static const int   MAX_SPEED  = 100;
 
 static int clampSpeed(float v)
 {
@@ -40,58 +34,11 @@ static int clampSpeed(float v)
     return (int)v;
 }
 
-// Steps 'current' toward 'target' by at most MAX_STEP, so wheel commands
-// change gradually loop-to-loop instead of jumping straight to the new
-// PID output.
-static int slewLimit(int current, int target)
-{
-    int delta = target - current;
-    if (delta > MAX_STEP)  delta = MAX_STEP;
-    if (delta < -MAX_STEP) delta = -MAX_STEP;
-    return current + delta;
-}
-
-// Simple debounce: only accepts a new reading once it's been seen
-// DEBOUNCE_READS times in a row. With only ~3.5mm margin either side of
-// the line, a single noisy edge-crossing was flipping the error state -
-// and therefore the full correction - almost every loop. This filters
-// that out; a genuine, sustained drift still gets picked up within a
-// couple of loops, but single-cycle flicker doesn't.
-struct Debouncer
-{
-    bool stable  = false;
-    bool pending = false;
-    int  count   = 0;
-
-    bool update(bool raw)
-    {
-        if (raw == pending)
-        {
-            count++;
-            if (count >= DEBOUNCE_READS)
-                stable = pending;
-        }
-        else
-        {
-            pending = raw;
-            count = 1;
-        }
-        return stable;
-    }
-};
-
 int main()
 {
     uBit.init();
     uBit.radio.enable();
     uBit.radio.setGroup(1);
-
-    float integral  = 0.0f;
-    float lastError = 0.0f;
-    int   currentLeftSpeed  = 0;
-    int   currentRightSpeed = 0;
-    Debouncer leftDebounce;
-    Debouncer rightDebounce;
 
     while (1)
     {
@@ -117,47 +64,29 @@ int main()
             }
         }
 
-        // PID line following on a discrete {-1, 0, +1} error.
+        // P-only line following on a discrete {-1, 0, +1} error.
         // Turn convention (matches the bang-bang version that worked):
         // positive error/output -> steer left, negative -> steer right.
-        bool rawLeftBlack  = robot.trackSide(LineSide::Left, LineState::Black);
-        bool rawRightBlack = robot.trackSide(LineSide::Right, LineState::Black);
-        bool leftBlack  = leftDebounce.update(rawLeftBlack);
-        bool rightBlack = rightDebounce.update(rawRightBlack);
+        bool leftBlack  = robot.trackSide(LineSide::Left, LineState::Black);
+        bool rightBlack = robot.trackSide(LineSide::Right, LineState::Black);
 
         if (!leftBlack && !rightBlack)
         {
             // Line lost - stop rather than guess, same as the bang-bang
-            // version. Reset the integral so it doesn't wind up while
-            // stopped and cause a lurch when the line is reacquired.
+            // version.
             robot.stopCar();
-            integral  = 0.0f;
-            lastError = 0.0f;
-            currentLeftSpeed  = 0;
-            currentRightSpeed = 0;
         }
         else
         {
             float error = (leftBlack ? 1.0f : 0.0f) - (rightBlack ? 1.0f : 0.0f);
+            float output = KP * error;
 
-            integral += error * DT;
-            if (integral > INTEGRAL_LIMIT)  integral = INTEGRAL_LIMIT;
-            if (integral < -INTEGRAL_LIMIT) integral = -INTEGRAL_LIMIT;
+            int leftSpeed  = clampSpeed(BASE_SPEED - output);
+            int rightSpeed = clampSpeed(BASE_SPEED + output);
 
-            float derivative = (error - lastError) / DT;
-            lastError = error;
-
-            float output = (KP * error) + (KI * integral) + (KD * derivative);
-
-            int targetLeftSpeed  = clampSpeed(BASE_SPEED - output);
-            int targetRightSpeed = clampSpeed(BASE_SPEED + output);
-
-            currentLeftSpeed  = slewLimit(currentLeftSpeed, targetLeftSpeed);
-            currentRightSpeed = slewLimit(currentRightSpeed, targetRightSpeed);
-
-            robot.setWheels(currentLeftSpeed, currentRightSpeed);
+            robot.setWheels(leftSpeed, rightSpeed);
         }
 
-        uBit.sleep(LOOP_MS);
+        uBit.sleep(20);
     }
 }
