@@ -17,13 +17,13 @@ static const uint8_t THIS_ROBOT_ID = 1;
 // bang-bang, but Kp/Ki/Kd shape a smoother, tunable reaction instead of
 // an instant full-speed snap. All gains are untuned starting points.
 static const int   BASE_SPEED     = 15;   // both wheels when centred (matches the bang-bang baseline that worked)
-static const float KP             = 8.0f;
-static const float KI             = 0.0f; // start at 0 - only add if there's a consistent one-sided drift
+static const float KP             = 20.0f; // raised from 8: needs to reach ~BASE_SPEED at max error to turn as sharply as bang-bang did
+static const float KI             = 0.0f;  // start at 0 - only add if there's a consistent one-sided drift
 static const float KD             = 2.0f;
 static const float INTEGRAL_LIMIT = 10.0f; // anti-windup clamp
 static const int   LOOP_MS        = 20;
 static const float DT             = LOOP_MS / 1000.0f;
-static const int   MIN_SPEED      = 0;
+static const int   MIN_SPEED      = -40;  // allow the inner wheel to reverse for a tighter pivot on sharp error
 static const int   MAX_SPEED      = 100;
 
 static int clampSpeed(float v)
