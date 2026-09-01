@@ -23,9 +23,13 @@ static const uint8_t THIS_ROBOT_ID = 1;
 // on corners), Kp=20 overcorrected (zigzag). Try this value, then adjust
 // in steps of ~2-3 toward whichever symptom reappears.
 static const int   BASE_SPEED = 15;
-static const float KP         = 15.0f;
+static const float KP         = 15.0f; // confirmed working via isolated tuning
 static const int   MIN_SPEED  = -25;  // allows the inner wheel to reverse for a tighter pivot on sharp error
 static const int   MAX_SPEED  = 100;
+static const int   MAX_STEP   = 4;    // slew-rate limit: max change in commanded wheel speed per loop.
+                                       // Smooths the motor "burst" when the P output jumps between discrete
+                                       // error states - a separate concern from Kp itself, added back in on
+                                       // its own now that Kp is confirmed working.
 
 static int clampSpeed(float v)
 {
@@ -34,11 +38,25 @@ static int clampSpeed(float v)
     return (int)v;
 }
 
+// Steps 'current' toward 'target' by at most MAX_STEP, so wheel commands
+// change gradually loop-to-loop instead of jumping straight to the new
+// P output.
+static int slewLimit(int current, int target)
+{
+    int delta = target - current;
+    if (delta > MAX_STEP)  delta = MAX_STEP;
+    if (delta < -MAX_STEP) delta = -MAX_STEP;
+    return current + delta;
+}
+
 int main()
 {
     uBit.init();
     uBit.radio.enable();
     uBit.radio.setGroup(1);
+
+    int currentLeftSpeed  = 0;
+    int currentRightSpeed = 0;
 
     while (1)
     {
@@ -75,16 +93,21 @@ int main()
             // Line lost - stop rather than guess, same as the bang-bang
             // version.
             robot.stopCar();
+            currentLeftSpeed  = 0;
+            currentRightSpeed = 0;
         }
         else
         {
             float error = (leftBlack ? 1.0f : 0.0f) - (rightBlack ? 1.0f : 0.0f);
             float output = KP * error;
 
-            int leftSpeed  = clampSpeed(BASE_SPEED - output);
-            int rightSpeed = clampSpeed(BASE_SPEED + output);
+            int targetLeftSpeed  = clampSpeed(BASE_SPEED - output);
+            int targetRightSpeed = clampSpeed(BASE_SPEED + output);
 
-            robot.setWheels(leftSpeed, rightSpeed);
+            currentLeftSpeed  = slewLimit(currentLeftSpeed, targetLeftSpeed);
+            currentRightSpeed = slewLimit(currentRightSpeed, targetRightSpeed);
+
+            robot.setWheels(currentLeftSpeed, currentRightSpeed);
         }
 
         uBit.sleep(20);
