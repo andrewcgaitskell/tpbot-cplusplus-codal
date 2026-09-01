@@ -4,16 +4,15 @@
 MicroBit uBit;
 TPBot robot(uBit);
 
-// Diagnostic only - NOT the line follower. Drives both wheels at the
-// same commanded speed with no sensor input at all, to check for a raw
-// mechanical/motor imbalance. Place the robot on a flat surface (off
-// any line) and watch whether it drives dead straight or visibly arcs
-// to one side. If it arcs, that's a hardware imbalance the line-following
-// logic has to correct for even when centred - which would explain why
-// it "drives off almost immediately" on a straight despite the code
-// being unchanged since the peanut track worked.
+// Diagnostic only - NOT the line follower. Drives both wheels at a
+// speed plus/minus TRIM, no sensor input at all, to find the constant
+// offset needed to cancel a mechanical drift (confirmed: drifts left at
+// equal wheel speeds). Place the robot on a flat surface (off any line).
+// Start at TRIM=0 (confirms drift), then increase in small steps and
+// re-test until it drives as straight as possible.
 
 static const int TEST_SPEED = 15; // matches BASE_SPEED in the line follower
+static const int TRIM       = 2;  // left gets +TRIM, right gets -TRIM - adjust and re-test
 
 int main()
 {
@@ -21,7 +20,7 @@ int main()
 
     uBit.display.scroll("STRAIGHT TEST");
 
-    robot.setWheels(TEST_SPEED, TEST_SPEED);
+    robot.setWheels(TEST_SPEED + TRIM, TEST_SPEED - TRIM);
 
     while (1)
     {
