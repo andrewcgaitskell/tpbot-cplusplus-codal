@@ -19,9 +19,7 @@ static const uint8_t THIS_ROBOT_ID = 1;
 static const int   BASE_SPEED     = 15;   // both wheels when centred (matches the bang-bang baseline that worked)
 static const float KP             = 20.0f; // needs to reach ~BASE_SPEED at max error to turn as sharply as bang-bang did
 static const float KI             = 0.0f;  // start at 0 - only add if there's a consistent one-sided drift
-// static const float KD             = 0.1f;  // was jerky
-static const float KD             = 0.0f;
-                                            // was 2.0: with a discrete 0/1/-1 error and DT=0.02s, a full-step
+static const float KD             = 0.1f;  // was 2.0: with a discrete 0/1/-1 error and DT=0.02s, a full-step
                                             // transition gives derivative=1/DT=50, so Kd=2 alone contributed a
                                             // 100-point swing - far bigger than Kp's own ±20. This was the main
                                             // source of the jerkiness. Re-tune up from here in small steps if needed.
@@ -30,7 +28,8 @@ static const int   LOOP_MS        = 20;
 static const float DT             = LOOP_MS / 1000.0f;
 static const int   MIN_SPEED      = -40;  // allow the inner wheel to reverse for a tighter pivot on sharp error
 static const int   MAX_SPEED      = 100;
-static const int   MAX_STEP       = 4;    // slew-rate limit: max change in commanded wheel speed per loop (smooths out any remaining sudden jumps)
+static const int   MAX_STEP       = 4;    // slew-rate limit: max change in commanded wheel speed per loop
+static const int   DEBOUNCE_READS = 2;     // consecutive matching raw readings needed before a sensor state change is trusted
 
 static int clampSpeed(float v)
 {
@@ -50,6 +49,35 @@ static int slewLimit(int current, int target)
     return current + delta;
 }
 
+// Simple debounce: only accepts a new reading once it's been seen
+// DEBOUNCE_READS times in a row. With only ~3.5mm margin either side of
+// the line, a single noisy edge-crossing was flipping the error state -
+// and therefore the full correction - almost every loop. This filters
+// that out; a genuine, sustained drift still gets picked up within a
+// couple of loops, but single-cycle flicker doesn't.
+struct Debouncer
+{
+    bool stable  = false;
+    bool pending = false;
+    int  count   = 0;
+
+    bool update(bool raw)
+    {
+        if (raw == pending)
+        {
+            count++;
+            if (count >= DEBOUNCE_READS)
+                stable = pending;
+        }
+        else
+        {
+            pending = raw;
+            count = 1;
+        }
+        return stable;
+    }
+};
+
 int main()
 {
     uBit.init();
@@ -60,6 +88,8 @@ int main()
     float lastError = 0.0f;
     int   currentLeftSpeed  = 0;
     int   currentRightSpeed = 0;
+    Debouncer leftDebounce;
+    Debouncer rightDebounce;
 
     while (1)
     {
@@ -88,8 +118,10 @@ int main()
         // PID line following on a discrete {-1, 0, +1} error.
         // Turn convention (matches the bang-bang version that worked):
         // positive error/output -> steer left, negative -> steer right.
-        bool leftBlack  = robot.trackSide(LineSide::Left, LineState::Black);
-        bool rightBlack = robot.trackSide(LineSide::Right, LineState::Black);
+        bool rawLeftBlack  = robot.trackSide(LineSide::Left, LineState::Black);
+        bool rawRightBlack = robot.trackSide(LineSide::Right, LineState::Black);
+        bool leftBlack  = leftDebounce.update(rawLeftBlack);
+        bool rightBlack = rightDebounce.update(rawRightBlack);
 
         if (!leftBlack && !rightBlack)
         {
