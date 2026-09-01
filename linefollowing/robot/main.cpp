@@ -48,10 +48,9 @@ int main()
             }
         }
 
-        // Bang-bang line following. NOTE: which side steers which way is
-        // an assumption based on typical two-sensor placement (sensors
-        // straddling the line) - swap the two turn cases below if the
-        // robot corrects the wrong way in testing.
+        // Bang-bang line following. Turn direction swapped from the first
+        // attempt - it was correcting the wrong way and running straight
+        // off the line into L_R_unline (stop) almost immediately.
         switch (robot.currentTrackingState())
         {
             case TrackingState::L_R_line:
@@ -60,13 +59,13 @@ int main()
                 break;
 
             case TrackingState::L_line_R_unline:
-                // Left still on the line, right has drifted off - steer right.
-                robot.setWheels(TURN_SPEED, 0);
+                // Left still on the line, right has drifted off - steer left.
+                robot.setWheels(0, TURN_SPEED);
                 break;
 
             case TrackingState::L_unline_R_line:
-                // Right still on the line, left has drifted off - steer left.
-                robot.setWheels(0, TURN_SPEED);
+                // Right still on the line, left has drifted off - steer right.
+                robot.setWheels(TURN_SPEED, 0);
                 break;
 
             case TrackingState::L_R_unline:
