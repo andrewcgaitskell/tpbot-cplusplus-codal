@@ -15,8 +15,8 @@ static const uint8_t THIS_ROBOT_ID = 1;
 // Deliberately slow and simple: no PID, no speed ramping, no search
 // behaviour if the line is lost. Just react to the current sensor state
 // each loop. Tune these once basic tracking direction is confirmed.
-static const int FORWARD_SPEED = 30;   // both wheels, when centred on the line
-static const int TURN_SPEED    = 30;   // the still-tracking wheel, while the other stops
+static const int FORWARD_SPEED = 10;   // both wheels, when centred on the line
+static const int TURN_SPEED    = 10;   // the still-tracking wheel, while the other stops
 
 int main()
 {
