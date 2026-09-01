@@ -17,7 +17,9 @@ static const uint8_t THIS_ROBOT_ID = 1;
 // bang-bang, but Kp/Ki/Kd shape a smoother, tunable reaction instead of
 // an instant full-speed snap. All gains are untuned starting points.
 static const int   BASE_SPEED     = 15;   // both wheels when centred (matches the bang-bang baseline that worked)
-static const float KP             = 20.0f; // needs to reach ~BASE_SPEED at max error to turn as sharply as bang-bang did
+static const float KP             = 12.0f; // was 20: that overshot past centre and oscillated (zigzag) between the two edges.
+                                            // Was 8 before that: undercorrected and didn't turn enough. Narrowing in from both ends -
+                                            // nudge up/down in steps of ~2 from here depending on which symptom reappears.
 static const float KI             = 0.0f;  // start at 0 - only add if there's a consistent one-sided drift
 static const float KD             = 0.1f;  // was 2.0: with a discrete 0/1/-1 error and DT=0.02s, a full-step
                                             // transition gives derivative=1/DT=50, so Kd=2 alone contributed a
@@ -26,9 +28,9 @@ static const float KD             = 0.1f;  // was 2.0: with a discrete 0/1/-1 er
 static const float INTEGRAL_LIMIT = 10.0f; // anti-windup clamp
 static const int   LOOP_MS        = 20;
 static const float DT             = LOOP_MS / 1000.0f;
-static const int   MIN_SPEED      = -40;  // allow the inner wheel to reverse for a tighter pivot on sharp error
+static const int   MIN_SPEED      = -25;  // was -40: reduced alongside Kp so the sharpest correction is a bit less extreme
 static const int   MAX_SPEED      = 100;
-static const int   MAX_STEP       = 4;    // slew-rate limit: max change in commanded wheel speed per loop
+static const int   MAX_STEP       = 3;    // was 4: slightly gentler ramp, complements the lower Kp in damping overshoot
 static const int   DEBOUNCE_READS = 2;     // consecutive matching raw readings needed before a sensor state change is trusted
 
 static int clampSpeed(float v)
