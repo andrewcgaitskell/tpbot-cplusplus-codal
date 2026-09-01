@@ -7,7 +7,8 @@
 set -euo pipefail
 
 pause() {
-    read -rp ">>> $1 [press enter to continue] "
+    echo ">>> $1 [press enter to continue]"
+    read -r _ < /dev/tty || true
 }
 
 echo "--- Resolving paths ---"
@@ -26,8 +27,11 @@ pause "Paths resolved above - do they look right?"
 
 echo "--- Checking directories exist ---"
 for dir in "$ROBOT_SRC" "$BASE_SRC" "$ROBOT_DEST" "$BASE_DEST"; do
+    echo "Checking: $dir"
     if [ ! -d "$dir" ]; then
         echo "Error: directory not found: $dir" >&2
+        echo "Parent directory contents:" >&2
+        ls -la "$(dirname "$dir")" >&2 || echo "(parent directory also missing)" >&2
         exit 1
     fi
     echo "OK: $dir"
