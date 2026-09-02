@@ -65,6 +65,13 @@ static volatile FollowState g_state = FollowState::Stopped;
 static volatile Direction g_lastKnownDirection = Direction::Unknown;
 static volatile bool g_lineEverSeen = false;
 
+// Loop timing telemetry, read by the radio fiber and reported to base on
+// request. Two values are kept: the most recent loop time, and the worst
+// (max) seen since boot - averages hide exactly the spikes you're trying
+// to find, so the max is usually the more useful number.
+static volatile uint16_t g_lastLoopMs = 0;
+static volatile uint16_t g_maxLoopMs = 0;
+
 static int clampSpeed(int v)
 {
     if (v < MIN_SPEED) return MIN_SPEED;
@@ -146,9 +153,17 @@ static void driveForState(FollowState state)
 static void lineFollowFiber()
 {
     int msSinceLineSeen = 0;
+    unsigned long lastTick = uBit.systemTime();
 
     while (1)
     {
+        unsigned long now = uBit.systemTime();
+        uint16_t elapsed = (uint16_t)(now - lastTick); // actual time since the previous iteration started
+        lastTick = now;
+        g_lastLoopMs = elapsed;
+        if (elapsed > g_maxLoopMs)
+            g_maxLoopMs = elapsed;
+
         bool leftBlack = robot.trackSide(LineSide::Left, LineState::Black);
         bool rightBlack = robot.trackSide(LineSide::Right, LineState::Black);
 
@@ -184,16 +199,25 @@ static void radioFiber()
         {
             RobotCommand cmd;
             if (unpackRobotCommand(rx, n, cmd) &&
-                (cmd.robotId == THIS_ROBOT_ID || cmd.robotId == 0) &&
-                cmd.command == CMD_POLL_SENSORS)
+                (cmd.robotId == THIS_ROBOT_ID || cmd.robotId == 0))
             {
-                bool leftBlack = robot.trackSide(LineSide::Left, LineState::Black);
-                bool rightBlack = robot.trackSide(LineSide::Right, LineState::Black);
+                if (cmd.command == CMD_POLL_SENSORS)
+                {
+                    bool leftBlack = robot.trackSide(LineSide::Left, LineState::Black);
+                    bool rightBlack = robot.trackSide(LineSide::Right, LineState::Black);
 
-                uint8_t tx[ROBOT_COMMAND_SIZE];
-                int len = packRobotCommand(tx, THIS_ROBOT_ID, CMD_SENSOR_REPORT,
-                                           leftBlack ? 1 : 0, rightBlack ? 1 : 0);
-                uBit.radio.datagram.send(tx, len);
+                    uint8_t tx[ROBOT_COMMAND_SIZE];
+                    int len = packRobotCommand(tx, THIS_ROBOT_ID, CMD_SENSOR_REPORT,
+                                               leftBlack ? 1 : 0, rightBlack ? 1 : 0);
+                    uBit.radio.datagram.send(tx, len);
+                }
+                else if (cmd.command == CMD_POLL_LOOP_TIME)
+                {
+                    uint8_t tx[ROBOT_COMMAND_SIZE];
+                    int len = packRobotCommand(tx, THIS_ROBOT_ID, CMD_LOOP_TIME_REPORT,
+                                               (int16_t)g_lastLoopMs, (int16_t)g_maxLoopMs);
+                    uBit.radio.datagram.send(tx, len);
+                }
             }
         }
 
