@@ -47,14 +47,16 @@ enum class Direction : int8_t
 
 // --- Tuning ---
 static const int BASE_SPEED = 15;
-static const int TURN_SPEED = 60; // outer wheel speed during a hard turn
-static const int PIVOT_SPEED = -25; // inner wheel speed during a hard turn (negative = reverse, tighter pivot)
-static const int SEARCH_SPEED = 40; // slightly gentler than a live correction, since we're guessing
+static const int CORRECT_OUTER = 22; // outer wheel speed during a live correction - a nudge, not a spin
+static const int CORRECT_INNER = 6;  // inner wheel speed during a live correction (still forward, just slower)
+static const int SEARCH_OUTER = 40; // once the line is fully lost, turn harder to relocate it
+static const int SEARCH_INNER = -10; // small reverse only once we're actively hunting, not on every correction
 static const int TRIM = 2; // constant bias correcting mechanical left-drift, applied only when going straight
 static const int MIN_SPEED = -25;
 static const int MAX_SPEED = 100;
 static const int LOST_LINE_TIMEOUT_MS = 600; // give up searching and stop after this long with no line
 static const int LOOP_DELAY_MS = 20;
+static const int DEBOUNCE_READS = 2; // consecutive matching readings required before a state change is accepted
 
 // --- Shared state between fibers ---
 // Single-word volatiles are effectively atomic on the microbit's Cortex-M0,
@@ -82,7 +84,13 @@ static int clampSpeed(int v)
 // Pure state-transition function: sensor readings + history in, new state out.
 // Kept separate from motor output so the logic can be reasoned about (and
 // unit-tested off-device) without touching hardware.
-static FollowState nextState(bool leftBlack, bool rightBlack, int msSinceLineSeen)
+//
+// Debounced: a raw reading has to repeat DEBOUNCE_READS times in a row
+// before it's accepted as a real state change. Without this, ordinary
+// sensor flicker at the line edge on a straight run was enough to flip
+// direction every loop, firing full-force corrections back and forth -
+// that's the "violent veering", not a genuine drift needing correction.
+static FollowState rawStateFromSensors(bool leftBlack, bool rightBlack, int msSinceLineSeen)
 {
     if (leftBlack && rightBlack)
     {
@@ -114,8 +122,49 @@ static FollowState nextState(bool leftBlack, bool rightBlack, int msSinceLineSee
     }
 }
 
+static FollowState nextState(bool leftBlack, bool rightBlack, int msSinceLineSeen)
+{
+    static FollowState pendingState = FollowState::Stopped;
+    static FollowState acceptedState = FollowState::Stopped;
+    static int matchCount = 0;
+
+    FollowState raw = rawStateFromSensors(leftBlack, rightBlack, msSinceLineSeen);
+
+    // Searching/Stopped are already a response to sustained absence of the
+    // line (msSinceLineSeen), not a single noisy read - apply them
+    // immediately rather than waiting for them to debounce too.
+    if (raw == FollowState::SearchingLeft || raw == FollowState::SearchingRight || raw == FollowState::Stopped)
+    {
+        acceptedState = raw;
+        pendingState = raw;
+        matchCount = 0;
+        return acceptedState;
+    }
+
+    if (raw == pendingState)
+    {
+        matchCount++;
+    }
+    else
+    {
+        pendingState = raw;
+        matchCount = 1;
+    }
+
+    if (matchCount >= DEBOUNCE_READS)
+        acceptedState = pendingState;
+
+    return acceptedState;
+}
+
 // Turn convention matches the earlier working bang-bang version:
 // error toward the left sensor -> pivot left, and vice versa.
+//
+// Live corrections (CorrectingLeft/Right) are now a nudge - the inner
+// wheel keeps moving forward, just slower - rather than a full reversal.
+// The harder, reversing turn is reserved for Searching states, where the
+// line is genuinely gone and a tighter turn to relocate it is worth the
+// extra aggressiveness.
 static void driveForState(FollowState state)
 {
     switch (state)
@@ -125,19 +174,19 @@ static void driveForState(FollowState state)
             break;
 
         case FollowState::CorrectingLeft:
-            robot.setWheels(clampSpeed(PIVOT_SPEED), clampSpeed(TURN_SPEED));
+            robot.setWheels(clampSpeed(CORRECT_INNER), clampSpeed(CORRECT_OUTER));
             break;
 
         case FollowState::CorrectingRight:
-            robot.setWheels(clampSpeed(TURN_SPEED), clampSpeed(PIVOT_SPEED));
+            robot.setWheels(clampSpeed(CORRECT_OUTER), clampSpeed(CORRECT_INNER));
             break;
 
         case FollowState::SearchingLeft:
-            robot.setWheels(clampSpeed(-SEARCH_SPEED / 2), clampSpeed(SEARCH_SPEED));
+            robot.setWheels(clampSpeed(SEARCH_INNER), clampSpeed(SEARCH_OUTER));
             break;
 
         case FollowState::SearchingRight:
-            robot.setWheels(clampSpeed(SEARCH_SPEED), clampSpeed(-SEARCH_SPEED / 2));
+            robot.setWheels(clampSpeed(SEARCH_OUTER), clampSpeed(SEARCH_INNER));
             break;
 
         case FollowState::Stopped:
