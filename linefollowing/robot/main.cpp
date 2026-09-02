@@ -226,7 +226,8 @@ static void lineFollowFiber()
             msSinceLineSeen += LOOP_DELAY_MS;
         }
 
-        g_state = nextState(leftBlack, rightBlack, msSinceLineSeen);
+        // g_state = nextState(leftBlack, rightBlack, msSinceLineSeen);
+        g_state = FollowState::Straight;
         driveForState(g_state);
 
         uBit.sleep(LOOP_DELAY_MS);
