@@ -1,7 +1,7 @@
 import serial
 import re
 
-ser = serial.Serial('/dev/ttyACM1', 115200, timeout=1)  # adjust port as needed
+ser = serial.Serial('/dev/ttyACM0', 115200, timeout=1)  # adjust port as needed
 
 # Matches TPBot.TrackingState in elecfreaks/pxt-TPBot (V1.ts / V2.ts):
 #   L_R_line          = 0  -> both sensors on line (both Black)
