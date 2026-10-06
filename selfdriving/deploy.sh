@@ -1,9 +1,9 @@
 #!/bin/bash
-# Lives in the root of tpbot-cplusplus-codal. Copies the selfdriving
+# Lives in the selfdriving folder. Copies the selfdriving
 # robot source files into the microbit-selfdriving project source directory,
 # overwriting existing files.
 #
-# Usage: ./deploy-selfdriving.sh
+# Usage: source deploy.sh
 #
 # Everything printed to the screen is also written to a log file next to
 # this script, and the window stays open at the end (success or failure)
