@@ -1,6 +1,8 @@
 #include "MicroBit.h"
 #include "TPBotV1.h"
 
+extern MicroBit uBit;
+
 using namespace TPBotV1;
 
 int main() {
