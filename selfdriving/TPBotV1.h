@@ -72,11 +72,11 @@ namespace TPBotV1 {
         void setTravelTime(DriveDirection direction, int speed, int timeMs);
         void setTravelSpeed(DriveDirection direction, int speed);
         void stopCar();
-        bool trackSide(LineSide side, LineState state);
-        bool trackLine(TrackingState state);
+        [[nodiscard]] bool trackSide(LineSide side, LineState state) const;
+        [[nodiscard]] bool trackLine(TrackingState state) const;
         void trackEvent(MbPins side, MbEvents state, void (*handler)(MicroBitEvent));
-        int sonarReturn(SonarUnit unit, int maxCmDistance = 500);
-        bool sonarJudge(SonarJudge judge, int dis);
+        [[nodiscard]] int sonarReturn(SonarUnit unit, int maxCmDistance = 500) const;
+        [[nodiscard]] bool sonarJudge(SonarJudge judge, int dis) const;
         void headlightColor(uint32_t color);
         void headlightRGB(int r, int g, int b);
         void headlightClose();
