@@ -74,7 +74,7 @@ namespace TPBotV1 {
         send();
     }
 
-    bool TPBotV1Driver::trackSide(LineSide side, LineState state) {
+    bool TPBotV1Driver::trackSide(LineSide side, LineState state) const {
         uBit.io.P13.setPull(PullMode::None);
         uBit.io.P14.setPull(PullMode::None);
 
@@ -97,7 +97,7 @@ namespace TPBotV1 {
         return false;
     }
 
-    bool TPBotV1Driver::trackLine(TrackingState state) {
+    bool TPBotV1Driver::trackLine(TrackingState state) const {
         uBit.io.P13.setPull(PullMode::None);
         uBit.io.P14.setPull(PullMode::None);
 
@@ -125,7 +125,7 @@ namespace TPBotV1 {
         uBit.messageBus.listen((int)side, (int)state, handler);
     }
 
-    int TPBotV1Driver::sonarReturn(SonarUnit unit, int maxCmDistance) {
+    int TPBotV1Driver::sonarReturn(SonarUnit unit, int maxCmDistance) const {
         uBit.io.P16.setPull(PullMode::None);
         uBit.io.P16.setDigitalValue(0);
         system_timer_wait_us(2);
@@ -160,7 +160,7 @@ namespace TPBotV1 {
         return distance_cm;
     }
 
-    bool TPBotV1Driver::sonarJudge(SonarJudge judge, int dis) {
+    bool TPBotV1Driver::sonarJudge(SonarJudge judge, int dis) const {
         int measured = sonarReturn(SonarUnit::Centimeters);
 
         if (judge == SonarJudge::Less) {
@@ -242,3 +242,4 @@ namespace TPBotV1 {
 
     TPBotV1Driver tpbot;
 }
+
