@@ -233,8 +233,10 @@ namespace TPBotV1 {
 
     void TPBotV1Driver::initEvents() {
         if (!_initEvents) {
-            uBit.io.P13.eventOn(MICROBIT_PIN_EVT_BOTH);
-            uBit.io.P14.eventOn(MICROBIT_PIN_EVT_BOTH);
+            uBit.io.P13.eventOn(MICROBIT_PIN_EVT_RISE);
+            uBit.io.P13.eventOn(MICROBIT_PIN_EVT_FALL);
+            uBit.io.P14.eventOn(MICROBIT_PIN_EVT_RISE);
+            uBit.io.P14.eventOn(MICROBIT_PIN_EVT_FALL);
             _initEvents = true;
         }
     }
