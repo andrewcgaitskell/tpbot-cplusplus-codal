@@ -1,5 +1,8 @@
 #include "TPBotV1.h"
 
+// Declare that uBit is provided by the CODAL runtime
+extern MicroBit uBit;
+
 namespace TPBotV1 {
 
     static int mapRange(int value, int in_min, int in_max, int out_min, int out_max) {
