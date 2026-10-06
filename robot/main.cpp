@@ -1,5 +1,5 @@
 #include "MicroBit.h"
-#include "TPBotMotor.h"
+#include "tpbot.h"
 
 MicroBit uBit;
 
