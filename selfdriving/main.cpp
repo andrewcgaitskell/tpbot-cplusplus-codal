@@ -18,15 +18,15 @@ int main() {
 
         // Both sensors detect the line: move forward
         if (left == 0 && right == 0) {
-            tpbot.setTravelSpeed(DriveDirection::Forward, 200);
+            tpbot.setTravelSpeed(DriveDirection::Forward, 45);
         }
         // Left sensor sees the line; turn left
         else if (left == 0 && right == 1) {
-            tpbot.setTravelSpeed(DriveDirection::Left, 200);
+            tpbot.setTravelSpeed(DriveDirection::Left, 45);
         }
         // Right sensor sees the line; turn right
         else if (left == 1 && right == 0) {
-            tpbot.setTravelSpeed(DriveDirection::Right, 200);
+            tpbot.setTravelSpeed(DriveDirection::Right, 45);
         }
         // Neither sensor sees the line: stop or slow turn
         else {
