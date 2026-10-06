@@ -64,7 +64,7 @@ namespace TPBotV1 {
 
     class TPBotV1Driver {
     public:
-        static constexpr uint8_t TPBotAdd = 0x10;
+        static constexpr uint8_t TPBotAdd = 0x10 << 1;  // ✅ CORRECT (0x20)
 
         TPBotV1Driver();
 
