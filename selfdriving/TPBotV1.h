@@ -2,7 +2,6 @@
 #define TPBOTV1_H
 
 #include "MicroBit.h"
-
 #include <cstdint>
 
 namespace TPBotV1 {
