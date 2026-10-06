@@ -26,6 +26,8 @@ pause() {
 }
 
 echo "--- Resolving paths ---"
+echo "my script source /home/picontrol/BBCMicrobit/tpbot-cplusplus-codal/selfdriving"
+
 SELFDRIVING_SRC="$SCRIPT_DIR"
 SELFDRIVING_DEST="/home/picontrol/BBCMicrobit/microbit-selfdriving/source"
 
