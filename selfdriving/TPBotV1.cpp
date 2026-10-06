@@ -1,6 +1,6 @@
 #include "TPBotV1.h"
+#include "Edge.h"
 
-// Declare that uBit is provided by the CODAL runtime
 extern MicroBit uBit;
 
 namespace TPBotV1 {
@@ -229,7 +229,7 @@ namespace TPBotV1 {
     }
 
     void TPBotV1Driver::send() {
-        uBit.i2c.write(TPBotAdd, (const char*)buff_, 4);
+        uBit.i2c.write(TPBotAdd, buff_, 4);
     }
 
     void TPBotV1Driver::initEvents() {
