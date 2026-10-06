@@ -47,20 +47,20 @@ for dir in "$SELFDRIVING_SRC" "$SELFDRIVING_DEST"; do
 done
 pause "All directories exist - continue to copy?"
 
-echo "--- Contents of SELFDRIVING_SRC before copy ---"
-ls -la "$SELFDRIVING_SRC"
+echo "--- Contents of SELFDRIVING_SRC before copy (will copy .cpp and .h files) ---"
+ls -la "$SELFDRIVING_SRC"/*.{cpp,h} 2>/dev/null || echo "(no .cpp or .h files found)"
 pause "Review selfdriving source files above"
 
 echo "--- Contents of SELFDRIVING_DEST before copy (will be overwritten) ---"
 ls -la "$SELFDRIVING_DEST"
-pause "Review selfdriving dest files above - about to overwrite"
+pause "Review selfdriving dest files above - about to overwrite .cpp and .h files"
 
-echo "Copying selfdriving files: $SELFDRIVING_SRC -> $SELFDRIVING_DEST"
-if ! cp -fv "$SELFDRIVING_SRC"/* "$SELFDRIVING_DEST"/; then
+echo "Copying selfdriving .cpp and .h files: $SELFDRIVING_SRC -> $SELFDRIVING_DEST"
+if ! cp -fv "$SELFDRIVING_SRC"/*.{cpp,h} "$SELFDRIVING_DEST"/ 2>/dev/null; then
     echo "Error: copy of selfdriving files failed"
     exit 1
 fi
 echo "--- Contents of SELFDRIVING_DEST after copy ---"
 ls -la "$SELFDRIVING_DEST"
 
-echo "Done."
+pause "Done."
