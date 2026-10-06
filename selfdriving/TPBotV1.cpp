@@ -1,5 +1,4 @@
 #include "TPBotV1.h"
-#include "Edge.h"
 
 extern MicroBit uBit;
 
@@ -234,12 +233,11 @@ namespace TPBotV1 {
 
     void TPBotV1Driver::initEvents() {
         if (!_initEvents) {
-            uBit.io.P13.eventOn(Edge::Both);
-            uBit.io.P14.eventOn(Edge::Both);
+            uBit.io.P13.eventOn(MICROBIT_PIN_EVT_BOTH);
+            uBit.io.P14.eventOn(MICROBIT_PIN_EVT_BOTH);
             _initEvents = true;
         }
     }
 
     TPBotV1Driver tpbot;
 }
-
