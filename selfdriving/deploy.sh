@@ -26,7 +26,7 @@ pause() {
 }
 
 echo "--- Resolving paths ---"
-SELFDRIVING_SRC="$SCRIPT_DIR/selfdriving"
+SELFDRIVING_SRC="$SCRIPT_DIR"
 SELFDRIVING_DEST="/home/picontrol/BBCMicrobit/microbit-selfdriving/source"
 
 echo "SCRIPT_DIR         = $SCRIPT_DIR"
