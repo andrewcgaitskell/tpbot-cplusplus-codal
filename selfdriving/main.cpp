@@ -13,7 +13,7 @@ int main() {
         int right = uBit.io.P14.getDigitalValue();   // 0 = black seen, 1 = white seen
 
         // tune these first
-        const int BASE_FORWARD   = 35;
+        const int BASE_FORWARD   = 30;
         const int TURN_SPEED_L   = 30;   // left turn speed
         const int TURN_SPEED_R   = 30;   // right turn speed
 
