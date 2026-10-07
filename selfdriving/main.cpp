@@ -13,8 +13,8 @@ int main() {
         int right = uBit.io.P14.getDigitalValue();   // 0 = black seen, 1 = white seen
 
         // tune these first
-        const int BASE_FORWARD = 30;
-        const int TURN_SPEED   = 25;
+        const int BASE_FORWARD = 35;
+        const int TURN_SPEED   = 30;
 
         // other
         const int SLEEP_TIME   = 20;
