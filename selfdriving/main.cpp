@@ -8,31 +8,31 @@ using namespace TPBotV1;
 int main() {
     uBit.init();
 
-    // If your line is black on white, keep the logic below.
-    // If your line is white on black, invert the sensor logic.
-    // uBit.display.scroll("TPBot V1");
-
     while (1) {
-        int left = uBit.io.P13.getDigitalValue();   // 0 = black seen, 1 = white seen
-        int right = uBit.io.P14.getDigitalValue();  // 0 = black seen, 1 = white seen
+        int left  = uBit.io.P13.getDigitalValue();   // 0 = black seen, 1 = white seen
+        int right = uBit.io.P14.getDigitalValue();   // 0 = black seen, 1 = white seen
 
-        // Both sensors detect the line: move forward
+        // tune these first
+        const int BASE_FORWARD = 30;
+        const int TURN_SPEED   = 25;
+
+        // other
+        const int SLEEP_TIME   = 20;
+
         if (left == 0 && right == 0) {
-            tpbot.setTravelSpeed(DriveDirection::Forward, 45);
+            tpbot.setTravelSpeed(DriveDirection::Forward, BASE_FORWARD);
         }
-        // Left sensor sees the line; turn left
         else if (left == 0 && right == 1) {
-            tpbot.setTravelSpeed(DriveDirection::Left, 20);
+            tpbot.setTravelSpeed(DriveDirection::Left, TURN_SPEED);
         }
-        // Right sensor sees the line; turn right
         else if (left == 1 && right == 0) {
-            tpbot.setTravelSpeed(DriveDirection::Right, 20);
+            tpbot.setTravelSpeed(DriveDirection::Right, TURN_SPEED);
         }
-        // Neither sensor sees the line: stop or slow turn
         else {
-            tpbot.stopCar();
+            // both sensors lost the line: slow recovery
+            tpbot.setTravelSpeed(DriveDirection::Forward, 10);
         }
 
-        uBit.sleep(20);
+        uBit.sleep(SLEEP_TIME);
     }
 }
