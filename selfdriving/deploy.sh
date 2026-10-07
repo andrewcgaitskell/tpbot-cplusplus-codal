@@ -66,3 +66,19 @@ echo "--- Contents of SELFDRIVING_DEST after copy ---"
 ls -la "$SELFDRIVING_DEST"
 
 pause "Done."
+
+cd /home/picontrol/BBCMicrobit/microbit-selfdriving
+
+docker run --rm -v "$(pwd)":/opt/microbit-samples -w /opt/microbit-samples microbit-builder python3 build.py
+
+openocd -f interface/cmsis-dap.cfg -f target/nrf52.cfg -c "program MICROBIT.hex verify reset exit"
+
+cd /home/picontrol/BBCMicrobit/tpbot-cplusplus-codal/selfdriving
+
+
+
+
+
+
+
+
