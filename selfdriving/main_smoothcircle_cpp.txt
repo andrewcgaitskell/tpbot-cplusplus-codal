@@ -1,4 +1,4 @@
-// smoothcircle_main_cpp.txt
+// main_smoothcircle_cpp.txt
 
 #include "MicroBit.h"
 #include "TPBotV1.h"
